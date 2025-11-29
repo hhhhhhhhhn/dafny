@@ -8,7 +8,8 @@ function mult(x: RR, y: RR): RR
 
 lemma Neutral(x: RR)
 	ensures {:axiom} add(x, Zero) == x
-	ensures {:axiom} mult(x, One) == x && One != Zero
+	ensures {:axiom} mult(x, One) == x
+	ensures {:axiom} One != Zero
 
 lemma Conmutativity(x: RR, y: RR)
 	ensures {:axiom} add(x, y) == add(y, x)
@@ -24,6 +25,7 @@ lemma Inverse(x: RR)
 
 lemma Distribuitivity(x: RR, y: RR, z: RR)
 	ensures {:axiom} mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
+
 
 ghost function neg(x: RR): RR
 	ensures add(x, neg(x)) == Zero
@@ -41,6 +43,57 @@ ghost function inv(x: RR): RR
 	var y :| mult(x, y) == One;
 	y
 }
+
+ghost function sub(x: RR, y: RR): RR {
+	add(x, neg(y))
+}
+
+ghost function div(x: RR, y: RR): RR
+	requires y != Zero
+{
+	mult(x, inv(y))
+}
+
+//// Sample helper, finds the variable automatically. Slow...
+//lemma HelperField()
+//	ensures One != Zero
+//	ensures forall x: RR ::
+//		(add(x, Zero) == x)
+//		&& mult(x, One) == x
+//	ensures forall x: RR, y: RR ::
+//		add(x, y) == add(y, x)
+//		&& mult(x, y) == mult(y, x)
+//	ensures forall x: RR, y: RR, z: RR ::
+//		add(x, add(y, z)) == add(add(x, y), z)
+//		&& mult(x, mult(y, z)) == mult(mult(x, y), z)
+//		&& mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
+//{
+//	assert One != Zero by {Neutral(Zero);}
+//
+//	forall x: RR
+//		ensures (add(x, Zero) == x)
+//	     && (mult(x, One) == x)
+//	{
+//		assert add(x, Zero) == x && mult(x, One) == x by {Neutral(x);}
+//	}
+//
+//	forall x: RR, y: RR
+//		ensures add(x, y) == add(y, x)
+//			&& mult(x, y) == mult(y, x)
+//	{
+//		assert add(x, y) == add(y, x) && mult(x, y) == mult(y, x) by {Conmutativity(x, y);}
+//	}
+//
+//	forall x: RR, y: RR, z: RR
+//		ensures add(x, add(y, z)) == add(add(x, y), z)
+//			&& mult(x, mult(y, z)) == mult(mult(x, y), z)
+//			&& mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
+//	{
+//		assert add(x, add(y, z)) == add(add(x, y), z)            by {Associativity(x, y, z);}
+//		assert mult(x, mult(y, z)) == mult(mult(x, y), z)        by {Associativity(x, y, z);}
+//		assert mult(x, add(y, z)) == add(mult(x, y), mult(x, z)) by {Distribuitivity(x, y, z);}
+//	}
+//}
 
 lemma NegationOfNegation(x: RR)
 	ensures neg(neg(x)) == x
@@ -89,23 +142,38 @@ lemma InvIsUnique(x: RR, y: RR)
 	assert mult(inv(x), One) == inv(x)                          by {Neutral(inv(x));}
 }
 
-lemma InversesAreUnique()
-	ensures forall x: RR, y: RR ::
-		((add(x, y) == Zero) ==> (y == neg(x)))
-		&& ((x != Zero && mult(x, y) == One) ==> (y == inv(x)))
+lemma NegZeroIsZero()
+	ensures neg(Zero) == Zero
 {
-	forall x: RR, y: RR
-		ensures ((add(x, y) == Zero) ==> (y == neg(x)))
-			&& ((x != Zero && mult(x, y) == One) ==> (y == inv(x)))
-	{
-		if add(x, y) == Zero {
-			assert y == neg(x) by {NegIsUnique(x, y);}
-		}
-		if x != Zero && mult(x, y) == One {
-			assert y == inv(x) by {InvIsUnique(x, y);}
-		}
-	}
+	assert Zero == neg(Zero) by {Neutral(Zero); NegIsUnique(Zero, Zero);}
 }
+
+
+lemma InvOneIsOne()
+	ensures One != Zero
+	ensures inv(One) == One
+{
+	assert One != Zero     by {Neutral(One);}
+	assert One == inv(One) by {Neutral(One); InvIsUnique(One, One);}
+}
+
+//lemma HelperInversesAreUnique()
+//	ensures forall x: RR, y: RR ::
+//		((add(x, y) == Zero) ==> (y == neg(x)))
+//		&& ((x != Zero && mult(x, y) == One) ==> (y == inv(x)))
+//{
+//	forall x: RR, y: RR
+//		ensures ((add(x, y) == Zero) ==> (y == neg(x)))
+//			&& ((x != Zero && mult(x, y) == One) ==> (y == inv(x)))
+//	{
+//		if add(x, y) == Zero {
+//			assert y == neg(x) by {NegIsUnique(x, y);}
+//		}
+//		if x != Zero && mult(x, y) == One {
+//			assert y == inv(x) by {InvIsUnique(x, y);}
+//		}
+//	}
+//}
 
 lemma AnythingTimesZeroIsZero(x: RR)
 	ensures mult(x, Zero) == Zero
@@ -169,4 +237,56 @@ lemma OneIsUnique(x: RR, y: RR)
 {
 	assert mult(mult(x, y), inv(x)) == mult(y, mult(x, inv(x))) by {Conmutativity(x, y); Associativity(y, x, inv(x));}
 	assert mult(mult(x, y), inv(x)) == y                        by {Neutral(y);}
+}
+
+lemma AddOnBothSides(x: RR, a: RR, b: RR)
+	requires sub(x, a) == b
+	ensures x == add(b, a)
+{
+	assert add(sub(x, a), a) == add(b, a);
+	assert add(add(x, neg(a)), a) == add(b, a);
+	assert add(x, add(a, neg(a))) == add(b, a) by {Associativity(x, neg(a), a); Conmutativity(a, neg(a));}
+	assert x == add(b, a)                        by {Neutral(x);}
+}
+
+lemma SubstractOnBothSides(x: RR, a: RR, b: RR)
+	requires add(x, a) == b
+	ensures x == sub(b, a)
+{
+	assert sub(add(x, a), a)      == sub(b, a);
+	assert add(add(x, a), neg(a)) == sub(b, a);
+	assert add(x, add(a, neg(a))) == sub(b, a) by {Associativity(x, a, neg(a));}
+	assert x == sub(b, a)                      by {Neutral(x);}
+}
+
+lemma MultiplyOnBothSides(x: RR, a: RR, b: RR)
+	requires a != Zero
+	requires div(x, a) == b
+	ensures x == mult(b, a)
+{
+	assert mult(div(x, a), a) == mult(b, a);
+	assert mult(mult(x, inv(a)), a) == mult(b, a);
+	assert mult(x, mult(a, inv(a))) == mult(b, a) by {Associativity(x, inv(a), a); Conmutativity(a, inv(a));}
+	assert x == mult(b, a)                        by {Neutral(x);}
+}
+
+lemma DivideOnBothSides(x: RR, a: RR, b: RR)
+	requires mult(x, a) == b
+	requires a != Zero
+	ensures x == div(b, a)
+{
+	assert div(mult(x, a), a)       == div(b, a);
+	assert mult(mult(x, a), inv(a)) == div(b, a);
+	assert mult(x, mult(a, inv(a))) == div(b, a) by {Associativity(x, a, inv(a));}
+	assert x == div(b, a)                        by {Neutral(x);}
+}
+
+lemma LinearEquationSolution(x: RR, a: RR, b: RR, c: RR)
+	requires add(mult(a, x), b) == c
+	requires a != Zero
+	ensures x == div(sub(c, b), a)
+{
+	assert mult(a, x) == sub(c, b) by {SubstractOnBothSides(mult(a, x), b, c);}
+	assert mult(x, a) == sub(c, b) by {Conmutativity(a, x);}
+	assert x == div(sub(c, b), a)  by {DivideOnBothSides(x, a, sub(c, b));}
 }
