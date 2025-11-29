@@ -1,3 +1,4 @@
+//////////////////////////// Field axioms  //////////////////////////////////
 type RR(00) // 00 = nonempty
 
 ghost const Zero: RR
@@ -27,6 +28,16 @@ lemma Distribuitivity(x: RR, y: RR, z: RR)
 	ensures {:axiom} mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
 
 
+predicate ExactlyOneOf(a: bool, b: bool, c: bool) {
+	(a && !b && !c) || (!a && b && !c) || (!a && !b && c)
+}
+
+//////////////////////////////// Field Theorems //////////////////////////////////
+
+// Observation: This declaration means that there exists one such function,
+// not that it is unique. This is becuase the :| operation
+// could in theory pick any real for which the condition holds.
+// We then prove that the function is unique (NegIsUnique)
 ghost function neg(x: RR): RR
 	ensures add(x, neg(x)) == Zero
 {
@@ -43,6 +54,7 @@ ghost function inv(x: RR): RR
 	var y :| mult(x, y) == One;
 	y
 }
+
 
 ghost function sub(x: RR, y: RR): RR {
 	add(x, neg(y))
@@ -290,3 +302,65 @@ lemma LinearEquationSolution(x: RR, a: RR, b: RR, c: RR)
 	assert mult(x, a) == sub(c, b) by {Conmutativity(a, x);}
 	assert x == div(sub(c, b), a)  by {DivideOnBothSides(x, a, sub(c, b));}
 }
+
+
+////////////////////////////////////////// Ordered axioms //////////////////////////////
+predicate StrictlyPositive(x: RR)
+
+lemma Trichotomy(x: RR)
+	ensures {:axiom} ExactlyOneOf(StrictlyPositive(x), StrictlyPositive(neg(x)), x == Zero)
+
+lemma Closure(x: RR, y: RR)
+	requires StrictlyPositive(x)
+	requires StrictlyPositive(y)
+	ensures {:axiom} StrictlyPositive(add(x, y))
+	ensures {:axiom} StrictlyPositive(mult(x, y))
+
+
+////////////////////////////////////// Ordered Theorems ///////////////////////////////
+ghost predicate lt(x: RR, y: RR) {
+	StrictlyPositive(sub(y, x))
+}
+
+ghost predicate gt(x: RR, y: RR) {
+	lt(y, x)
+}
+
+ghost predicate le(x: RR, y: RR) {
+	lt(x, y) || x == y
+}
+
+ghost predicate ge(x: RR, y: RR) {
+	gt(x, y) || x == y
+}
+
+/////////////////////////////////////// Complete axioms ////////////////////////////////
+ghost predicate IsAnUpperBound(s: iset<RR>, M: RR) {
+	forall x :: x in s ==> le(x, M)
+}
+
+ghost predicate SupBound(s: iset<RR>) {
+	exists M: RR :: IsAnUpperBound(s, M)
+}
+
+ghost predicate IsALowerBound(s: iset<RR>, M: RR) {
+	forall x :: x in s ==> ge(x, M)
+}
+
+ghost predicate InfBound(s: iset<RR>) {
+	exists M: RR :: IsALowerBound(s, M)
+}
+
+ghost predicate IsTheSupremum(s: iset<RR>, M: RR) {
+	IsAnUpperBound(s, M) && forall N: RR :: IsAnUpperBound(s, N) ==> ge(N, M)
+}
+
+ghost predicate IsTheInfimum(s: iset<RR>, M: RR) {
+	IsALowerBound(s, M) && forall N: RR :: IsALowerBound(s, N) ==> le(N, M)
+}
+
+lemma SupremumExists(s: iset<RR>)
+	ensures {:axiom} exists M: RR :: IsTheSupremum(s, M)
+
+
+///////////////////////////////////// Complete Theorems ////////////////////////////////
