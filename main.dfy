@@ -540,34 +540,94 @@ lemma ComparisonClosure(x: RR, y: RR)
 	assert StrictlyPositive(sub(mult(x, y), Zero));
 }
 
-
-lemma IneqAddOnBothSides(x: RR, a: RR, b: RR)
-	requires lt(sub(x, a), b)
-	ensures lt(x, add(b, a))
+lemma IneqTransitivityLeft(x: RR, y: RR, z: RR)
+	requires lt(x, y)
+	requires lt(y, z)
+	ensures lt(x, z)
 {
-	assert StrictlyPositive(sub(b, sub(x, a)));
+	assert StrictlyPositive(sub(y, x));
+	assert StrictlyPositive(sub(z, y));
 
-	assert sub(b, sub(x, a)) == add(b, neg(sub(x, a)));
-	assert sub(b, sub(x, a)) == add(b, sub(a, x))       by {NegOfSub(x, a);}
-	assert sub(b, sub(x, a)) == add(b, add(a, neg(x)));
-	assert sub(b, sub(x, a)) == add(add(b, a), neg(x))  by {Associativity(b, a, neg(x));}
-	assert sub(b, sub(x, a)) == sub(add(b, a), x)       by {Associativity(b, a, neg(x));}
-
-	assert StrictlyPositive(sub(add(b, a), x));
+	assert StrictlyPositive(add(sub(z, y), sub(y, x)))                       by {Closure(sub(z, y), sub(y, x));}
+	assert add(sub(z, y), sub(y, x)) == add(add(z, neg(y)), add(y, neg(x)));
+	assert add(sub(z, y), sub(y, x)) == add(z, add(neg(y), add(y, neg(x))))  by {Associativity(z, neg(y), add(y, neg(x)));}
+	assert add(sub(z, y), sub(y, x)) == add(z, add(add(neg(y), y), neg(x)))  by {Associativity(neg(y), y, neg(x));}
+	assert add(sub(z, y), sub(y, x)) == add(z, neg(x))                       by {Neutrals(neg(x));}
+	assert add(sub(z, y), sub(y, x)) == sub(z, x)                            by {Neutrals(neg(x));}
 }
 
-lemma IneqSubOnBothSides(x: RR, a: RR, b: RR)
-	requires lt(add(x, a), b)
-	ensures lt(x, sub(b, a))
+lemma IneqTransitivityRight(x: RR, y: RR, z: RR)
+	requires gt(x, y)
+	requires gt(y, z)
+	ensures gt(x, z)
 {
-	assert StrictlyPositive(sub(b, add(x, a)));
+	assert StrictlyPositive(sub(x, y));
+	assert StrictlyPositive(sub(y, z));
 
-	assert sub(b, add(x, a)) == add(b, add(neg(x), neg(a))) by {NegOfSum(x, a);}
-	assert sub(b, add(x, a)) == add(b, add(neg(a), neg(x))) by {Conmutativity(neg(x), neg(a));}
-	assert sub(b, add(x, a)) == add(add(b, neg(a)), neg(x)) by {Associativity(b, neg(a), neg(x));}
-	assert sub(b, add(x, a)) == sub(sub(b, a), x);
+	assert StrictlyPositive(add(sub(x, y), sub(y, z)))                        by {Closure(sub(x, y), sub(y, z));}
+	assert add(sub(x, y), sub(y, z)) == add(add(x, neg(y)), add(y, neg(z)));
+	assert add(sub(x, y), sub(y, z)) == add(x, add(neg(y), add(y, neg(z))))   by {Associativity(x, neg(y), add(y, neg(z)));}
+	assert add(sub(x, y), sub(y, z)) == add(x, add(add(neg(y), y), neg(z)))   by {Associativity(neg(y), y, neg(z));}
+	assert add(sub(x, y), sub(y, z)) == add(x, neg(z))                        by {Neutrals(neg(z));}
+	assert add(sub(x, y), sub(y, z)) == sub(x, z);
+}
 
-	assert StrictlyPositive(sub(sub(b, a), x));
+lemma IneqTransitivity(x: RR, y: RR, z: RR)
+	ensures lt(x, y) && lt(y, z) ==> lt(x, z)
+	ensures gt(x, y) && gt(y, z) ==> gt(x, z)
+
+	ensures le(x, y) && le(y, z) ==> le(x, z)
+	ensures ge(x, y) && ge(y, z) ==> ge(x, z)
+{
+	if lt(x, y) && lt(y, z) {
+		IneqTransitivityLeft(x, y, z);
+	}
+	if gt(x, y) && gt(y, z) {
+		IneqTransitivityRight(x, y, z);
+	}
+}
+
+lemma StrictIneqAddOnBothSides(x: RR, y: RR, a: RR)
+	requires lt(x, y)
+	ensures lt(add(x, a), add(y, a))
+{
+	assert StrictlyPositive(sub(y, x));
+
+	assert sub(add(y, a), add(x, a)) == add(add(y, a), add(neg(x), neg(a))) by {NegOfSum(x, a);}
+	assert sub(add(y, a), add(x, a)) == add(add(y, a), add(neg(a), neg(x))) by {Conmutativity(neg(x), neg(a));}
+	assert sub(add(y, a), add(x, a)) == add(y, add(a, add(neg(a), neg(x)))) by {Associativity(y, a, add(neg(a), neg(x)));}
+	assert sub(add(y, a), add(x, a)) == add(y, add(add(a, neg(a)), neg(x))) by {Associativity(a, neg(a), neg(x));}
+	assert sub(add(y, a), add(x, a)) == add(y, neg(x))                      by {Neutrals(x);}
+	assert sub(add(y, a), add(x, a)) == sub(y, x);
+}
+
+lemma IneqAddOnBothSides(x: RR, y: RR, a: RR)
+	ensures lt(x, y) ==> lt(add(x, a), add(y, a))
+	ensures gt(x, y) ==> gt(add(x, a), add(y, a))
+
+	ensures le(x, y) ==> le(add(x, a), add(y, a))
+	ensures ge(x, y) ==> ge(add(x, a), add(y, a))
+{
+	assert ExactlyOneOf(lt(x, y), gt(x, y), x == y) by {ComparisonTrichotomy(x, y);}
+	if x == y {
+		assert add(x, a) == add(y, a);
+	}
+	else if lt(x, y) {
+		assert lt(add(x, a), add(y, a)) by {StrictIneqAddOnBothSides(x, y, a);}
+	}
+	else if gt(x, y) {
+		assert lt(add(y, a), add(x, a)) by {StrictIneqAddOnBothSides(y, x, a);}
+	}
+}
+
+lemma IneqSubOnBothSides(x: RR, y: RR, a: RR)
+	ensures lt(x, y) ==> lt(sub(x, a), sub(y, a))
+	ensures gt(x, y) ==> gt(sub(x, a), sub(y, a))
+
+	ensures le(x, y) ==> le(sub(x, a), sub(y, a))
+	ensures ge(x, y) ==> ge(sub(x, a), sub(y, a))
+{
+	IneqAddOnBothSides(x, y, neg(a));
 }
 
 lemma IneqMultOnBothSidesPos(x: RR, a: RR, b: RR)
@@ -638,7 +698,7 @@ lemma SquaresNonnegative(x: RR)
 }
 
 lemma OneIsPositive()
-	ensures ge(One, Zero)
+	ensures gt(One, Zero)
 	ensures StrictlyPositive(One)
 {
 	assert One == square(One)    by {Neutrals(One);}
@@ -657,7 +717,252 @@ ghost function OneAsAPositive(): RR
 	One
 }
 
+ghost function MinusOneAsNegative(): RR
+	ensures lt(MinusOneAsNegative(), Zero)
+	ensures StrictlyNegative(MinusOneAsNegative())
+	ensures MinusOneAsNegative() == sub(Zero, One)
+{
+	var minusOne := neg(One);
+	assert StrictlyPositive(One) by {OneIsPositive();}
+	assert !StrictlyPositive(minusOne) by {Trichotomy(One);}
+	assert minusOne != Zero by {assert add(One, minusOne) == Zero; Neutrals(One);}
+	assert StrictlyNegative(minusOne);
+
+	assert sub(Zero, minusOne) == neg(minusOne) == One by {Neutrals(minusOne); NegOfNeg(One);}
+	assert lt(minusOne, Zero);
+
+	assert minusOne == sub(Zero, One) by {Neutrals(One);}
+
+	minusOne
+}
+
+ghost const MinusOne := MinusOneAsNegative()
+
 // type RRPA = x: RR | StrictlyPositive(x) ghost witness OneAsAPositive()
+
+///////////////////////////////////// Naturals ////////////////////////////////////
+ghost function inc(x: RR): RR {add(x, One)}
+
+ghost function dec(x: RR): RR {sub(x, One)}
+
+ghost predicate IsInductive(s: iset<RR>) {
+	Zero in s && (forall x :: (x in s ==> inc(x) in s))
+}
+
+ghost predicate IsNatural(n: RR) {
+	forall s :: IsInductive(s) ==> n in s
+}
+
+lemma ZeroIsNatural()
+	ensures IsNatural(Zero)
+{
+	forall s: iset<RR>
+		ensures IsInductive(s) ==> Zero in s
+	{
+		if IsInductive(s) {
+			assert Zero in s; // Definition if IsInductive
+		}
+	}
+}
+
+lemma IncIsNatural(n: RR)
+	requires IsNatural(n)
+	ensures IsNatural(inc(n))
+{
+	forall s: iset<RR>
+		ensures IsInductive(s) ==> inc(n) in s
+	{
+		if IsInductive(s) {
+			assert n in s;
+			assert n in s ==> inc(n) in s; // Def of inductive sets
+		}
+	}
+}
+
+ghost function ZeroAsNatural(): RR
+	ensures IsNatural(Zero)
+{
+	assert IsNatural(Zero) by {ZeroIsNatural();}
+	Zero
+}
+
+type NN =  n: RR | IsNatural(n) ghost witness ZeroAsNatural()
+
+predicate Xor(a: bool, b: bool) {(a && !b) || (!a && b)}
+
+ghost const setOfNaturals := iset n: NN
+lemma NaturalsAreInductive()
+	ensures IsInductive(setOfNaturals)
+{} // Dafny does this automatically
+
+// TODO: Replace with naturals are nonnegative???
+ghost const setOfNonnegatives := iset r: RR | ge(r, Zero)
+lemma NonnegativesAreInductive()
+	ensures IsInductive(setOfNonnegatives)
+{
+	assert Zero in setOfNonnegatives;
+	forall x: RR ensures x in setOfNonnegatives ==> inc(x) in setOfNonnegatives {
+		if x in setOfNonnegatives {
+			assert ge(x, Zero);
+			assert ge(add(x, One), add(Zero, One)) by {IneqAddOnBothSides(Zero, x, One);}
+			assert ge(inc(x), One)                 by {Neutrals(One);}
+			assert ge(One, Zero)                   by {OneIsPositive();}
+			assert ge(inc(x), Zero)                by {IneqTransitivity(inc(x), One, Zero);}
+			assert inc(x) in setOfNonnegatives;
+		}
+	}
+}
+
+lemma NaturalsAreNonnegative(n: NN)
+	ensures ge(n, Zero)
+{
+	assert IsInductive(setOfNonnegatives) by {NonnegativesAreInductive();}
+	// Dafny does this by itself
+}
+
+ghost function allRealsBut(x: RR): iset<RR> {
+	iset y: RR {:trigger} | y != x
+}
+
+lemma NaturalCaracterization(n: NN)
+	ensures Xor(n == Zero, exists m: NN :: n == inc(m))
+{
+	if n == Zero {
+		assert IsInductive(setOfNonnegatives) by {NonnegativesAreInductive();}
+
+		// Contradiction
+		forall m: NN ensures Zero != inc(m) {
+			// Prove: m is -1 and -1 is not a part of nonnegatives
+			if inc(m) == Zero {
+				assert sub(Zero, One) == m        by {SubstractOnBothSides(m, One, Zero);}
+				assert sub(Zero, One) == MinusOne by {Neutrals(One);}
+				assert m == MinusOne;
+
+				assert lt(MinusOne, Zero);
+				assert false by {ComparisonTrichotomy(m, Zero); NaturalsAreNonnegative(m);}
+			}
+		}
+	}
+	else if n != Zero {
+		// Contradiction
+		if !(exists m: NN :: n == inc(m)) {
+			// Idea: Create an inductive set of which n is not a part of
+			// increment of all naturals union {0}
+			ghost var setOfAllIncrements := iset x: RR {:trigger} | x == Zero || (exists y: NN :: x == inc(y));
+
+			assert IsInductive(setOfAllIncrements) by {
+				assert Zero in setOfAllIncrements;
+				forall x: RR
+					ensures x in setOfAllIncrements ==> inc(x) in setOfAllIncrements
+				{
+					if x in setOfAllIncrements {
+						if x == Zero {
+							assert IsNatural(Zero) by {ZeroIsNatural();}
+							assert inc(Zero) in setOfAllIncrements;
+						}
+						else if exists y: NN :: x == inc(y) {
+							ghost var y: NN :| x == inc(y);
+							assert IsNatural(inc(y))      by {IncIsNatural(y);}
+							assert IsNatural(inc(inc(y))) by {IncIsNatural(inc(y));}
+							assert inc(x) in setOfAllIncrements;
+						}
+					}
+				}
+			}
+
+			assert n in setOfAllIncrements by {assert IsInductive(setOfAllIncrements);} // naturals are in all inductive sets
+			assert n !in setOfAllIncrements by {assert n != Zero && !(exists m: NN :: n == inc(m));}
+			assert false;
+		}
+	}
+}
+
+lemma NaturalDecCaracterization(n: NN)
+	ensures Xor(n == Zero, IsNatural(dec(n)))
+{
+	assert Xor(n == Zero, exists m: NN :: n == inc(m)) by {NaturalCaracterization(n);}
+
+	if n != Zero && exists m: NN :: n == inc(m) {
+		ghost var m: NN :| n == inc(m);
+		assert dec(n) == m by {SubstractOnBothSides(m, One, n);}
+		assert IsNatural(dec(n));
+	}
+	else if n == Zero && !(exists m: NN :: n == inc(m)) {
+		assert dec(n) == MinusOne;
+		assert !IsNatural(dec(n)) by {
+			// Contradiction
+			if IsNatural(dec(n)) {
+				assert ge(dec(n), Zero) by {NaturalsAreNonnegative(dec(n));}
+				assert lt(dec(n), Zero);
+				assert false            by {ComparisonTrichotomy(dec(n), Zero);}
+			}
+		}
+	}
+}
+
+lemma WeakInduction(prop: (NN) -> bool)
+	requires prop(Zero)
+	requires forall n: NN :: prop(n) ==> prop(inc(n))
+	ensures forall n: NN :: prop(n)
+{
+	ghost var setWhereItHolds := iset x: NN | prop(x);
+	assert IsInductive(setWhereItHolds);
+}
+
+lemma NatClosureAdd(n: NN, m: NN)
+	ensures IsNatural(add(n, m))
+{
+	var addingQIsNatural := (q: NN) => (forall p: NN :: IsNatural(add(p, q)));
+	assert addingQIsNatural(Zero) by {
+		forall p: NN ensures IsNatural(add(p, Zero)) {
+			assert add(p, Zero) == p by {Neutrals(p);}
+		}
+	}
+
+	forall q: NN ensures addingQIsNatural(q) ==> addingQIsNatural(inc(q)) {
+		if addingQIsNatural(q) {
+			forall p: NN ensures IsNatural(add(p, inc(q))) {
+				assert add(p, inc(q)) == inc(add(p, q)) by {Associativity(p, q, One);}
+				assert IsNatural(inc(add(p, q)))        by {IncIsNatural(add(p, q));}
+			}
+		}
+	}
+
+	assert forall q: NN :: addingQIsNatural(q) by {WeakInduction(addingQIsNatural);}
+	assert addingQIsNatural(m);
+}
+
+lemma NatClosureMult(n: NN, m: NN)
+	ensures IsNatural(mult(n, m))
+{
+	var multiplyingByQIsNatural := (q: NN) => (forall p: NN :: IsNatural(mult(p, q)));
+	assert multiplyingByQIsNatural(Zero) by {
+		forall p: NN ensures IsNatural(mult(p, Zero)) {
+			assert mult(p, Zero) == Zero by {AnythingTimesZeroIsZero(p);}
+		}
+	}
+
+	forall q: NN ensures multiplyingByQIsNatural(q) ==> multiplyingByQIsNatural(inc(q)) {
+		if multiplyingByQIsNatural(q) {
+			forall p: NN ensures IsNatural(mult(p, inc(q))) {
+				assert mult(p, inc(q)) == add(mult(p, q), mult(p, One)) by {Distribuitivity(p, q, One);}
+				assert mult(p, inc(q)) == add(mult(p, q), p)            by {Neutrals(p);}
+				assert IsNatural(add(mult(p, q), p))                    by {NatClosureAdd(mult(p, q), p);}
+			}
+		}
+	}
+
+	assert forall q: NN :: multiplyingByQIsNatural(q) by {WeakInduction(multiplyingByQIsNatural);}
+	assert multiplyingByQIsNatural(m);
+}
+
+lemma NatClosure(n: NN, m: NN)
+	ensures IsNatural(add(n, m))
+	ensures IsNatural(mult(n, m))
+{
+	NatClosureAdd(n, m);
+	NatClosureMult(n, m);
+}
 
 /////////////////////////////////////// Complete axioms ////////////////////////////////
 ghost predicate IsAnUpperBound(s: iset<RR>, M: RR) {
@@ -691,16 +996,19 @@ lemma SupremumExists(s: iset<RR>)
 
 
 ///////////////////////////////////// Complete Theorems ////////////////////////////////
-lemma SqrtExists(x: RR)
-	requires ge(x, Zero)
-	ensures exists y :: (ge(y, Zero) && square(y) == x)
-{
-	var numbersLessThan := iset r: RR | le(square(r), x);
-
-	assert Zero in numbersLessThan by {
-		assert square(Zero) == Zero by {AnythingTimesZeroIsZero(Zero);}
-		assert le(Zero, x); // <=> ge(x, Zero)
-	}
-
-	assume {:axiom} exists y :: (ge(y, Zero) && square(y) == x);
-}
+//lemma SqrtExists(x: RR)
+//	requires ge(x, Zero)
+//	ensures exists y :: (ge(y, Zero) && square(y) == x)
+//{
+//	var numbersLessThan := iset r: RR | le(square(r), x);
+//
+//	assert Zero in numbersLessThan by {
+//		assert square(Zero) == Zero by {AnythingTimesZeroIsZero(Zero);}
+//		assert le(Zero, x); // <=> ge(x, Zero)
+//	}
+//
+//	assert IsAnUpperBound(numbersLessThan) by {
+//	}
+//
+//	assume {:axiom} exists y :: (ge(y, Zero) && square(y) == x);
+//}
