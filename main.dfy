@@ -24,7 +24,7 @@ lemma Inverse(x: RR)
 	ensures {:axiom} exists y: RR :: add(x, y) == Zero
 	ensures {:axiom} (x != Zero) ==> exists y: RR :: mult(x, y) == One
 
-lemma Distribuitivity(x: RR, y: RR, z: RR)
+lemma Distributivity(x: RR, y: RR, z: RR)
 	ensures {:axiom} mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
 
 
@@ -70,46 +70,46 @@ ghost function div(x: RR, y: RR): RR
 	mult(x, inv(y))
 }
 
-//// Sample helper, finds the variable automatically. Slow...
-//lemma HelperField()
-//	ensures One != Zero
-//	ensures forall x: RR ::
-//		(add(x, Zero) == x)
-//		&& mult(x, One) == x
-//	ensures forall x: RR, y: RR ::
-//		add(x, y) == add(y, x)
-//		&& mult(x, y) == mult(y, x)
-//	ensures forall x: RR, y: RR, z: RR ::
-//		add(x, add(y, z)) == add(add(x, y), z)
-//		&& mult(x, mult(y, z)) == mult(mult(x, y), z)
-//		&& mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
-//{
-//	assert One != Zero by {Neutral(Zero);}
-//
-//	forall x: RR
-//		ensures (add(x, Zero) == x)
-//	     && (mult(x, One) == x)
-//	{
-//		assert add(x, Zero) == x && mult(x, One) == x by {Neutral(x);}
-//	}
-//
-//	forall x: RR, y: RR
-//		ensures add(x, y) == add(y, x)
-//			&& mult(x, y) == mult(y, x)
-//	{
-//		assert add(x, y) == add(y, x) && mult(x, y) == mult(y, x) by {Conmutativity(x, y);}
-//	}
-//
-//	forall x: RR, y: RR, z: RR
-//		ensures add(x, add(y, z)) == add(add(x, y), z)
-//			&& mult(x, mult(y, z)) == mult(mult(x, y), z)
-//			&& mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
-//	{
-//		assert add(x, add(y, z)) == add(add(x, y), z)            by {Associativity(x, y, z);}
-//		assert mult(x, mult(y, z)) == mult(mult(x, y), z)        by {Associativity(x, y, z);}
-//		assert mult(x, add(y, z)) == add(mult(x, y), mult(x, z)) by {Distribuitivity(x, y, z);}
-//	}
-//}
+// Sample helper, finds the variable automatically. Slow...
+lemma HelperField()
+	ensures One != Zero
+	ensures forall x: RR ::
+		(add(x, Zero) == x)
+		&& mult(x, One) == x
+	ensures forall x: RR, y: RR ::
+		add(x, y) == add(y, x)
+		&& mult(x, y) == mult(y, x)
+	ensures forall x: RR, y: RR, z: RR ::
+		add(x, add(y, z)) == add(add(x, y), z)
+		&& mult(x, mult(y, z)) == mult(mult(x, y), z)
+		&& mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
+{
+	assert One != Zero by {Neutral(Zero);}
+
+	forall x: RR
+		ensures (add(x, Zero) == x)
+	     && (mult(x, One) == x)
+	{
+		assert add(x, Zero) == x && mult(x, One) == x by {Neutral(x);}
+	}
+
+	forall x: RR, y: RR
+		ensures add(x, y) == add(y, x)
+			&& mult(x, y) == mult(y, x)
+	{
+		assert add(x, y) == add(y, x) && mult(x, y) == mult(y, x) by {Conmutativity(x, y);}
+	}
+
+	forall x: RR, y: RR, z: RR
+		ensures add(x, add(y, z)) == add(add(x, y), z)
+			&& mult(x, mult(y, z)) == mult(mult(x, y), z)
+			&& mult(x, add(y, z)) == add(mult(x, y), mult(x, z))
+	{
+		assert add(x, add(y, z)) == add(add(x, y), z)            by {Associativity(x, y, z);}
+		assert mult(x, mult(y, z)) == mult(mult(x, y), z)        by {Associativity(x, y, z);}
+		assert mult(x, add(y, z)) == add(mult(x, y), mult(x, z)) by {Distributivity(x, y, z);}
+	}
+}
 
 lemma NegOfNeg(x: RR)
 	ensures neg(neg(x)) == x
@@ -197,7 +197,7 @@ lemma AnythingTimesZeroIsZero(x: RR)
 	assert mult(x, Zero) == add(mult(x, Zero), Zero)                                     by {Neutral(mult(x, Zero));}
 	assert mult(x, Zero) == add(mult(x, Zero), add(mult(x, Zero), neg(mult(x, Zero))));
 	assert mult(x, Zero) == add(add(mult(x, Zero), mult(x, Zero)), neg(mult(x, Zero)))   by {Associativity(mult(x, Zero), mult(x, Zero), neg(mult(x, Zero)));}
-	assert mult(x, Zero) == add(mult(x, add(Zero, Zero)), neg(mult(x, Zero)))            by {Distribuitivity(x, Zero, Zero);}
+	assert mult(x, Zero) == add(mult(x, add(Zero, Zero)), neg(mult(x, Zero)))            by {Distributivity(x, Zero, Zero);}
 	assert mult(x, Zero) == add(mult(x, Zero), neg(mult(x, Zero)))                       by {Neutral(Zero);}
 	assert mult(x, Zero) == Zero;
 }
@@ -343,7 +343,7 @@ lemma NegOfProdLeft(x: RR, y: RR)
 	ensures neg(mult(x, y)) == mult(neg(x), y)
 {
 	assert add(mult(x, y), mult(neg(x), y)) == add(mult(y, x), mult(y, neg(x))) by {Conmutativity(x, y); Conmutativity(neg(x), y);}
-	assert add(mult(x, y), mult(neg(x), y)) == mult(y, add(x, neg(x)))          by {Distribuitivity(y, x, neg(x));}
+	assert add(mult(x, y), mult(neg(x), y)) == mult(y, add(x, neg(x)))          by {Distributivity(y, x, neg(x));}
 	assert add(mult(x, y), mult(neg(x), y)) == mult(y, Zero);
 	assert add(mult(x, y), mult(neg(x), y)) == Zero                             by {AnythingTimesZeroIsZero(y);}
 
@@ -642,7 +642,7 @@ lemma IneqMultOnBothSidesPos(x: RR, a: RR, b: RR)
 
 	assert mult(sub(b, div(x, a)), a) == mult(add(b, neg(div(x, a))), a);
 	assert mult(sub(b, div(x, a)), a) == mult(a, add(b, neg(div(x, a))))                  by {Conmutativity(a, add(b, neg(div(x, a))));}
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), mult(a, neg(div(x, a))))         by {Distribuitivity(a, b, neg(div(x,a)));}
+	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), mult(a, neg(div(x, a))))         by {Distributivity(a, b, neg(div(x,a)));}
 	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(a, div(x, a))))         by {NegOfProd(a, div(x, a));}
 	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(a, mult(x, inv(a)))));
 	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(a, mult(inv(a), x))))   by {Conmutativity(x, inv(a));}
@@ -666,7 +666,7 @@ lemma IneqMultOnBothSidesNeg(x: RR, a: RR, b: RR)
 
 	assert mult(sub(b, div(x, a)), neg(a)) == mult(sub(div(x, a), b), a)               by {NegOfProd(sub(b, div(x, a)), a); NegOfSub(b, div(x, a));}
 	assert mult(sub(b, div(x, a)), neg(a)) == mult(a, sub(div(x, a), b))               by {Conmutativity(sub(div(x, a), b), a);}
-	assert mult(sub(b, div(x, a)), neg(a)) == add(mult(a, div(x, a)), mult(a, neg(b))) by {Distribuitivity(a, div(x, a), neg(b));}
+	assert mult(sub(b, div(x, a)), neg(a)) == add(mult(a, div(x, a)), mult(a, neg(b))) by {Distributivity(a, div(x, a), neg(b));}
 	assert mult(sub(b, div(x, a)), neg(a)) == add(mult(div(x, a), a), mult(a, neg(b))) by {Conmutativity(a, div(x, a));}
 	assert mult(sub(b, div(x, a)), neg(a)) == add(x, mult(a, neg(b)))                  by {Associativity(x, inv(a), a); Neutrals(x);}
 	assert mult(sub(b, div(x, a)), neg(a)) == add(x, neg(mult(a, b)))                  by {NegOfProd(a, b);}
@@ -710,17 +710,17 @@ lemma OneIsPositive()
 	assert sub(One, Zero) == One by {Neutrals(One);}
 }
 
-ghost function OneAsAPositive(): RR
+ghost function TheNumberOne(): RR
 	ensures StrictlyPositive(One)
 {
 	assert StrictlyPositive(One) by {OneIsPositive();}
 	One
 }
 
-ghost function MinusOneAsNegative(): RR
-	ensures lt(MinusOneAsNegative(), Zero)
-	ensures StrictlyNegative(MinusOneAsNegative())
-	ensures MinusOneAsNegative() == sub(Zero, One)
+ghost function TheNumberMinusOne(): RR
+	ensures lt(TheNumberMinusOne(), Zero)
+	ensures StrictlyNegative(TheNumberMinusOne())
+	ensures TheNumberMinusOne() == sub(Zero, One)
 {
 	var minusOne := neg(One);
 	assert StrictlyPositive(One) by {OneIsPositive();}
@@ -736,7 +736,71 @@ ghost function MinusOneAsNegative(): RR
 	minusOne
 }
 
-ghost const MinusOne := MinusOneAsNegative()
+ghost const MinusOne := TheNumberMinusOne()
+
+ghost function TheNumberTwo(): RR
+	ensures gt(TheNumberTwo(), Zero)
+	ensures StrictlyPositive(TheNumberTwo())
+	ensures forall x: RR :: add(x, x) == mult(TheNumberTwo(), x) == mult(x, TheNumberTwo())
+{
+	var two := add(One, One);
+	assert gt(One, Zero)           by {OneIsPositive();}
+	assert gt(two, add(Zero, One)) by {IneqAddOnBothSides(One, Zero, One);}
+	assert gt(two, One)            by {Neutrals(One);}
+	assert gt(two, Zero)           by {IneqTransitivity(two, One, Zero);}
+	assert StrictlyPositive(two)   by {GreaterThanZero(two);}
+
+	forall x: RR ensures add(x, x) == mult(two, x) == mult(x, two) {
+		assert add(x, x) == add(mult(x, One), mult(x, One)) by {Neutrals(x);}
+		assert add(x, x) == mult(x, add(One, One))          by {Distributivity(x, One, One);}
+		assert add(x, x) == mult(x, two);
+		assert add(x, x) == mult(two, x)                    by {Conmutativity(x, two);}
+	}
+	two
+}
+
+ghost const Two := TheNumberTwo()
+
+lemma SquareOfSum(x: RR, y: RR)
+	ensures square(add(x, y)) == add(add(square(x), square(y)), mult(Two, mult(x, y)))
+{
+	assert square(add(x, y)) == mult(add(x, y), add(x, y));
+	assert square(add(x, y)) == add(mult(add(x, y), x), mult(add(x, y), y))                 by {Distributivity(add(x, y), x, y);}
+	assert square(add(x, y)) == add(mult(x, add(x, y)), mult(y, add(x, y)))                 by {Conmutativity(x, add(x, y)); Conmutativity(y, add(x, y));}
+	assert square(add(x, y)) == add(add(square(x), mult(x, y)), add(mult(y, x), square(y))) by {Distributivity(x, x, y); Distributivity(y, x, y);}
+	assert square(add(x, y)) == add(square(x), add(mult(x, y), add(mult(y, x), square(y)))) by {Associativity(square(x), mult(x, y), add(mult(y, x), square(y)));}
+	assert square(add(x, y)) == add(square(x), add(mult(x, y), add(mult(x, y), square(y)))) by {Conmutativity(y, x);}
+	assert square(add(x, y)) == add(square(x), add(add(mult(x, y), mult(x, y)), square(y))) by {Associativity(mult(x, y), mult(x, y), square(y));}
+	assert square(add(x, y)) == add(square(x), add(mult(Two, mult(x, y)), square(y)));
+	assert square(add(x, y)) == add(square(x), add(square(y), mult(Two, mult(x, y))))       by {Conmutativity(square(y), mult(Two, mult(x, y)));}
+	assert square(add(x, y)) == add(add(square(x), square(y)), mult(Two, mult(x, y)))       by {Associativity(square(x), square(y), mult(Two, mult(x, y)));}
+}
+
+lemma SquareOfSub(x: RR, y: RR)
+	ensures square(sub(x, y)) == sub(add(square(x), square(y)), mult(Two, mult(x, y)))
+{
+	assert square(add(x, neg(y))) == add(add(square(x), square(neg(y))), mult(Two, mult(x, neg(y)))) by {SquareOfSum(x, neg(y));}
+	assert mult(Two, mult(x, neg(y))) == mult(Two, neg(mult(x, y))) == neg(mult(Two, mult(x, y)))    by {NegOfProd(x, y); NegOfProd(Two, mult(x, y));}
+	assert square(neg(y)) == square(y)                                                               by {ProdOfNeg(y, y);}
+}
+
+lemma SumOfSquaresInequality(x: RR, y: RR)
+	ensures ge(add(square(x), square(y)), mult(Two, mult(x, y)))
+{
+	assert ge(square(sub(x, y)), Zero) by {SquaresNonnegative(sub(x, y));}
+	assert square(sub(x, y)) == sub(add(square(x), square(y)), mult(Two, mult(x, y))) by {SquareOfSub(x, y);}
+
+	assert ge(add(sub(add(square(x), square(y)), mult(Two, mult(x, y))), mult(Two, mult(x, y))), mult(Two, mult(x, y))) by {
+		IneqAddOnBothSides(square(sub(x, y)), Zero, mult(Two, mult(x, y)));
+		Neutrals(mult(Two, mult(x, y)));
+	}
+
+	assert add(sub(add(square(x), square(y)), mult(Two, mult(x, y))), mult(Two, mult(x, y))) == add(square(x), square(y)) by {
+		Associativity(add(square(x), square(y)), neg(mult(Two, mult(x, y))), mult(Two, mult(x, y)));
+		Neutrals(add(square(x), square(y)));
+	}
+}
+
 
 // type RRPA = x: RR | StrictlyPositive(x) ghost witness OneAsAPositive()
 
@@ -832,7 +896,7 @@ lemma NaturalCaracterization(n: NN)
 
 		// Contradiction
 		forall m: NN ensures Zero != inc(m) {
-			// Prove: m is -1 and -1 is not a part of nonnegatives
+			// Proof: m is -1 and -1 is not a part of nonnegatives
 			if inc(m) == Zero {
 				assert sub(Zero, One) == m        by {SubstractOnBothSides(m, One, Zero);}
 				assert sub(Zero, One) == MinusOne by {Neutrals(One);}
@@ -892,9 +956,9 @@ lemma NaturalDecCaracterization(n: NN)
 		assert !IsNatural(dec(n)) by {
 			// Contradiction
 			if IsNatural(dec(n)) {
-				assert ge(dec(n), Zero) by {NaturalsAreNonnegative(dec(n));}
-				assert lt(dec(n), Zero);
-				assert false            by {ComparisonTrichotomy(dec(n), Zero);}
+				assert ge(dec(n), Zero)  by {NaturalsAreNonnegative(dec(n));}
+				assert lt(dec(n), Zero); // MinusOne is negative
+				assert false             by {ComparisonTrichotomy(dec(n), Zero);}
 			}
 		}
 	}
@@ -945,7 +1009,7 @@ lemma NatClosureMult(n: NN, m: NN)
 	forall q: NN ensures multiplyingByQIsNatural(q) ==> multiplyingByQIsNatural(inc(q)) {
 		if multiplyingByQIsNatural(q) {
 			forall p: NN ensures IsNatural(mult(p, inc(q))) {
-				assert mult(p, inc(q)) == add(mult(p, q), mult(p, One)) by {Distribuitivity(p, q, One);}
+				assert mult(p, inc(q)) == add(mult(p, q), mult(p, One)) by {Distributivity(p, q, One);}
 				assert mult(p, inc(q)) == add(mult(p, q), p)            by {Neutrals(p);}
 				assert IsNatural(add(mult(p, q), p))                    by {NatClosureAdd(mult(p, q), p);}
 			}
@@ -996,19 +1060,38 @@ lemma SupremumExists(s: iset<RR>)
 
 
 ///////////////////////////////////// Complete Theorems ////////////////////////////////
-//lemma SqrtExists(x: RR)
-//	requires ge(x, Zero)
-//	ensures exists y :: (ge(y, Zero) && square(y) == x)
-//{
-//	var numbersLessThan := iset r: RR | le(square(r), x);
-//
-//	assert Zero in numbersLessThan by {
-//		assert square(Zero) == Zero by {AnythingTimesZeroIsZero(Zero);}
-//		assert le(Zero, x); // <=> ge(x, Zero)
-//	}
-//
-//	assert IsAnUpperBound(numbersLessThan) by {
-//	}
-//
-//	assume {:axiom} exists y :: (ge(y, Zero) && square(y) == x);
-//}
+
+// TODO: Uniqueness
+ghost function sup(s: iset<RR>): RR
+	requires exists x :: x in s
+	requires UpperBounded(s)
+{
+	assert exists M: RR :: IsTheSupremum(s, M) by {SupremumExists(s);}
+	var M: RR :| IsTheSupremum(s, M);
+	M
+}
+
+lemma SqrtExists(x: RR)
+	requires ge(x, Zero)
+	ensures exists y :: (ge(y, Zero) && square(y) == x)
+{
+	assert Two != Zero by {GreaterThanZero(Two);}
+
+	var numbersLessThan := iset r: RR | le(square(r), x);
+
+	assert Zero in numbersLessThan by {
+		assert square(Zero) == Zero by {AnythingTimesZeroIsZero(Zero);}
+		assert le(Zero, x); // <=> ge(x, Zero)
+	}
+
+	assert IsAnUpperBound(numbersLessThan, div(add(x, One), Two)) by {
+		forall y: RR ensures y in numbersLessThan ==> le(y, div(add(x, One), Two)) {
+			if y in numbersLessThan {
+				assume le(y, div(add(x, One), Two));
+			}
+		}
+	}
+
+	var supremum := sup(numbersLessThan);
+	assume ge(supremum, Zero) && square(supremum) == x;
+}
