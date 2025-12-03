@@ -202,7 +202,7 @@ lemma AnythingTimesZeroIsZero(x: RR)
 	assert mult(x, Zero) == Zero;
 }
 
-lemma InverseIsNeverZero(x: RR)
+lemma InvIsNeverZero(x: RR)
 	requires x != Zero
 	ensures inv(x) != Zero
 {
@@ -217,7 +217,7 @@ lemma InverseOfInverse(x: RR)
 	ensures inv(x) != Zero
 	ensures inv(inv(x)) == x
 {
-	assert inv(x) != Zero by {InverseIsNeverZero(x);}
+	assert inv(x) != Zero by {InvIsNeverZero(x);}
 
 	assert mult(inv(x), inv(inv(x))) == One; // (1)
 	assert mult(x, inv(x)) == One;           // (2)
@@ -289,7 +289,7 @@ lemma NonzeroProductIsNonzero(x: RR, y: RR)
 
 	if mult(x, y) == Zero {
 		assert mult(inv(y), mult(x, y)) == Zero by {AnythingTimesZeroIsZero(inv(y));}
-		assert false                            by {InverseIsNeverZero(y);}
+		assert false                            by {InvIsNeverZero(y);}
 	}
 }
 
@@ -339,7 +339,7 @@ lemma InvOfProd(x: RR, y: RR)
 	assert inv(mult(x, y)) == mult(inv(x), inv(y)) by {InvIsUnique(mult(x, y), mult(inv(x), inv(y)));}
 }
 
-lemma NegOfProdLeft(x: RR, y: RR)
+lemma NegOfMultLeft(x: RR, y: RR)
 	ensures neg(mult(x, y)) == mult(neg(x), y)
 {
 	assert add(mult(x, y), mult(neg(x), y)) == add(mult(y, x), mult(y, neg(x))) by {Conmutativity(x, y); Conmutativity(neg(x), y);}
@@ -350,21 +350,21 @@ lemma NegOfProdLeft(x: RR, y: RR)
 	assert mult(neg(x), y) == neg(mult(x, y))                                   by {NegIsUnique(mult(x, y), mult(neg(x), y));}
 }
 
-lemma NegOfProd(x: RR, y: RR)
+lemma NegOfMult(x: RR, y: RR)
 	ensures neg(mult(x, y)) == mult(neg(x), y) == mult(x, neg(y))
 {
-	assert neg(mult(x, y)) == mult(neg(x), y)  by {NegOfProdLeft(x, y);}
+	assert neg(mult(x, y)) == mult(neg(x), y)  by {NegOfMultLeft(x, y);}
 
 	assert neg(mult(x, y)) == neg(mult(y, x))  by {Conmutativity(x, y);}
-	assert neg(mult(y, x)) == mult(neg(y), x)  by {NegOfProdLeft(y, x);}
+	assert neg(mult(y, x)) == mult(neg(y), x)  by {NegOfMultLeft(y, x);}
 	assert mult(neg(y), x) == mult(x, neg(y))  by {Conmutativity(x, neg(y));}
 }
 
-lemma ProdOfNeg(x: RR, y: RR)
+lemma MultOfNeg(x: RR, y: RR)
 	ensures mult(neg(x), neg(y)) == mult(x, y)
 {
-	assert mult(neg(x), neg(y)) == neg(mult(x, neg(y))) by {NegOfProd(x, neg(y));}
-	assert mult(neg(x), neg(y)) == neg(neg(mult(x, y))) by {NegOfProd(x, y);}
+	assert mult(neg(x), neg(y)) == neg(mult(x, neg(y))) by {NegOfMult(x, neg(y));}
+	assert mult(neg(x), neg(y)) == neg(neg(mult(x, y))) by {NegOfMult(x, y);}
 	assert mult(neg(x), neg(y)) == mult(x, y)           by {NegOfNeg(mult(x, y));}
 }
 
@@ -439,12 +439,35 @@ ghost predicate StrictlyNegative(x: RR) {
 	!StrictlyPositive(x) && x != Zero
 }
 
-ghost predicate lt(x: RR, y: RR) {
-	StrictlyPositive(sub(y, x))
+ghost predicate lt(x: RR, y: RR)
+	ensures (y == Zero && lt(x, y)) ==> StrictlyNegative(x)
+{
+	var isTrue := StrictlyPositive(sub(y, x));
+
+	assert (y == Zero && isTrue) ==> StrictlyNegative(x) by {
+		if (y == Zero && isTrue) {
+			assert sub(Zero, x) == neg(x)    by {Neutrals(x);}
+			assert StrictlyPositive(neg(x));
+			assert !StrictlyPositive(x)      by {Trichotomy(x);}
+			assert x != Zero;
+			assert StrictlyNegative(x);
+		}
+	}
+	isTrue
 }
 
-ghost predicate gt(x: RR, y: RR) {
-	lt(y, x)
+ghost predicate gt(x: RR, y: RR)
+	ensures (y == Zero && gt(x, y)) ==> StrictlyPositive(x)
+{
+	var isTrue := lt(y, x);
+
+	assert (y == Zero && isTrue) ==> StrictlyPositive(x) by {
+		if (y == Zero && isTrue) {
+			assert StrictlyPositive(sub(x, Zero));
+			assert sub(x, Zero) == x         by {Neutrals(x);}
+		}
+	}
+	isTrue
 }
 
 ghost predicate le(x: RR, y: RR) {
@@ -587,6 +610,37 @@ lemma IneqTransitivity(x: RR, y: RR, z: RR)
 	}
 }
 
+lemma MultSignStrict(x: RR, y: RR)
+	ensures gt(x, Zero) && gt(y, Zero) ==> gt(mult(x, y), Zero)
+	ensures lt(x, Zero) && lt(y, Zero) ==> gt(mult(x, y), Zero)
+	ensures lt(x, Zero) && gt(y, Zero) ==> lt(mult(x, y), Zero)
+	ensures gt(x, Zero) && lt(y, Zero) ==> lt(mult(x, y), Zero)
+{
+	Neutrals(x);
+	Neutrals(y);
+	Neutrals(mult(x, y));
+
+	if gt(x, Zero) && gt(y, Zero) {
+		assert StrictlyPositive(mult(x, y)) by {Closure(x, y);}
+		assert gt(mult(x, y), Zero);
+	}
+	if lt(x, Zero) && lt(y, Zero) {
+		assert StrictlyPositive(mult(neg(x), neg(y))) by {Closure(neg(x), neg(y));}
+		assert mult(neg(x), neg(y)) == mult(x, y)     by {MultOfNeg(x, y);}
+		assert gt(mult(x, y), Zero);
+	}
+	if lt(x, Zero) && gt(y, Zero) {
+		assert StrictlyPositive(mult(neg(x), y))   by {Closure(neg(x), y);}
+		assert mult(neg(x), y) == neg(mult(x, y))  by {NegOfMult(x, y);}
+		assert lt(mult(x, y), Zero)                by {Trichotomy(mult(x, y));}
+	}
+	if gt(x, Zero) && lt(y, Zero) {
+		assert StrictlyPositive(mult(x, neg(y)))   by {Closure(x, neg(y));}
+		assert mult(x, neg(y)) == neg(mult(x, y))  by {NegOfMult(x, y);}
+		assert lt(mult(x, y), Zero)                by {Trichotomy(mult(x, y));}
+	}
+}
+
 lemma StrictIneqAddOnBothSides(x: RR, y: RR, a: RR)
 	requires lt(x, y)
 	ensures lt(add(x, a), add(y, a))
@@ -630,50 +684,120 @@ lemma IneqSubOnBothSides(x: RR, y: RR, a: RR)
 	IneqAddOnBothSides(x, y, neg(a));
 }
 
-lemma IneqMultOnBothSidesPos(x: RR, a: RR, b: RR)
+lemma IneqMultOnBothSidesPos(x: RR, y: RR, a: RR)
 	requires gt(a, Zero)
-	requires a != Zero // TODO: Remove
-	requires lt(div(x, a), b)
-	ensures lt(x, mult(b, a))
+	requires a != Zero
+	requires lt(x, y)
+	ensures lt(mult(x, a), mult(y, a))
 {
-	assert StrictlyPositive(sub(b, div(x, a)));
+	assert StrictlyPositive(sub(y, x));
 	assert StrictlyPositive(a) by {GreaterThanZero(a);}
-	assert StrictlyPositive(mult(sub(b, div(x, a)), a)) by {Closure(sub(b, div(x, a)), a);}
+	assert StrictlyPositive(mult(a, sub(y, x))) by {Closure(a, sub(y, x));}
 
-	assert mult(sub(b, div(x, a)), a) == mult(add(b, neg(div(x, a))), a);
-	assert mult(sub(b, div(x, a)), a) == mult(a, add(b, neg(div(x, a))))                  by {Conmutativity(a, add(b, neg(div(x, a))));}
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), mult(a, neg(div(x, a))))         by {Distributivity(a, b, neg(div(x,a)));}
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(a, div(x, a))))         by {NegOfProd(a, div(x, a));}
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(a, mult(x, inv(a)))));
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(a, mult(inv(a), x))))   by {Conmutativity(x, inv(a));}
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(mult(mult(a, inv(a)), x)))   by {Associativity(a, inv(a), x);}
-	assert mult(sub(b, div(x, a)), a) == add(mult(a, b), neg(x))                          by {Neutrals(x);}
-	assert mult(sub(b, div(x, a)), a) == sub(mult(a, b), x);
-	assert mult(sub(b, div(x, a)), a) == sub(mult(b, a), x)                               by {Conmutativity(a, b);}
-
-	assert StrictlyPositive(sub(mult(b, a), x));
+	assert mult(a, sub(y, x)) == mult(a, add(y, neg(x)));
+	assert mult(a, sub(y, x)) == add(mult(a, y), mult(a, neg(x)))    by {Distributivity(a, y, neg(x));}
+	assert mult(a, sub(y, x)) == add(mult(a, y), neg(mult(a, x)))    by {NegOfMult(a, x);}
+	assert mult(a, sub(y, x)) == sub(mult(a, y), mult(a, x));
+	assert mult(a, sub(y, x)) == sub(mult(y, a), mult(x, a))         by {Conmutativity(a, y); Conmutativity(a, x);}
 }
 
-lemma IneqMultOnBothSidesNeg(x: RR, a: RR, b: RR)
+lemma IneqMultOnBothSidesNeg(x: RR, y: RR, a: RR)
 	requires lt(a, Zero)
-	requires a != Zero // TODO: Remove
-	requires lt(div(x, a), b)
-	ensures gt(x, mult(b, a))
+	requires a != Zero
+	requires lt(x, y)
+	ensures gt(mult(x, a), mult(y, a))
 {
-	assert StrictlyPositive(sub(b, div(x, a)));
+	assert StrictlyPositive(sub(y, x));
 	assert StrictlyPositive(neg(a)) by {LessThanZero(a);}
-	assert StrictlyPositive(mult(sub(b, div(x, a)), neg(a)))                           by {Closure(sub(b, div(x, a)), neg(a));}
+	assert StrictlyPositive(mult(neg(a), sub(y, x))) by {Closure(neg(a), sub(y, x));}
 
-	assert mult(sub(b, div(x, a)), neg(a)) == mult(sub(div(x, a), b), a)               by {NegOfProd(sub(b, div(x, a)), a); NegOfSub(b, div(x, a));}
-	assert mult(sub(b, div(x, a)), neg(a)) == mult(a, sub(div(x, a), b))               by {Conmutativity(sub(div(x, a), b), a);}
-	assert mult(sub(b, div(x, a)), neg(a)) == add(mult(a, div(x, a)), mult(a, neg(b))) by {Distributivity(a, div(x, a), neg(b));}
-	assert mult(sub(b, div(x, a)), neg(a)) == add(mult(div(x, a), a), mult(a, neg(b))) by {Conmutativity(a, div(x, a));}
-	assert mult(sub(b, div(x, a)), neg(a)) == add(x, mult(a, neg(b)))                  by {Associativity(x, inv(a), a); Neutrals(x);}
-	assert mult(sub(b, div(x, a)), neg(a)) == add(x, neg(mult(a, b)))                  by {NegOfProd(a, b);}
-	assert mult(sub(b, div(x, a)), neg(a)) == sub(x, mult(a, b));
-	assert mult(sub(b, div(x, a)), neg(a)) == sub(x, mult(b, a))                       by {Conmutativity(a, b);}
+	assert mult(neg(a), sub(y, x)) == neg(mult(a, sub(y, x))) by {NegOfMult(a, sub(y, x));}
 
-	assert StrictlyPositive(sub(x, mult(a, b)));
+	assert mult(a, sub(y, x)) == mult(a, add(y, neg(x)));
+	assert mult(a, sub(y, x)) == add(mult(a, y), mult(a, neg(x)))    by {Distributivity(a, y, neg(x));}
+	assert mult(a, sub(y, x)) == add(mult(a, y), neg(mult(a, x)))    by {NegOfMult(a, x);}
+	assert mult(a, sub(y, x)) == sub(mult(a, y), mult(a, x));
+	assert mult(a, sub(y, x)) == sub(mult(y, a), mult(x, a))         by {Conmutativity(a, y); Conmutativity(a, x);}
+
+	assert neg(mult(a, sub(y, x))) == neg(sub(mult(y, a), mult(x, a)));
+	assert neg(mult(a, sub(y, x))) == sub(mult(x, a), mult(y, a))    by {NegOfSub(mult(y, a), mult(x, a));}
+
+	assert StrictlyPositive(sub(mult(x, a), mult(y, a)));
+}
+
+lemma IneqMultOnBothSides(x: RR, y: RR, a: RR)
+	requires a != Zero
+	ensures lt(x, y) && gt(a, Zero) ==> lt(mult(x, a), mult(y, a))
+	ensures gt(x, y) && gt(a, Zero) ==> gt(mult(x, a), mult(y, a))
+	ensures le(x, y) && gt(a, Zero) ==> le(mult(x, a), mult(y, a))
+	ensures ge(x, y) && gt(a, Zero) ==> ge(mult(x, a), mult(y, a))
+
+	ensures lt(x, y) && lt(a, Zero) ==> gt(mult(x, a), mult(y, a))
+	ensures gt(x, y) && lt(a, Zero) ==> lt(mult(x, a), mult(y, a))
+	ensures le(x, y) && lt(a, Zero) ==> ge(mult(x, a), mult(y, a))
+	ensures ge(x, y) && lt(a, Zero) ==> le(mult(x, a), mult(y, a))
+{
+	if gt(a, Zero) {
+		if lt(x, y) {
+			assert lt(mult(x, a), mult(y, a)) by {IneqMultOnBothSidesPos(x, y, a);}
+		}
+		if lt(y, x) {
+			assert lt(mult(y, a), mult(x, a)) by {IneqMultOnBothSidesPos(y, x, a);}
+		}
+	}
+	if lt(a, Zero) {
+		if lt(x, y) {
+			assert gt(mult(x, a), mult(y, a)) by {IneqMultOnBothSidesNeg(x, y, a);}
+		}
+		if lt(y, x) {
+			assert gt(mult(y, a), mult(x, a)) by {IneqMultOnBothSidesNeg(y, x, a);}
+		}
+	}
+}
+
+lemma InvHasSameSign(x: RR)
+	requires x != Zero
+	ensures gt(x, Zero) ==> gt(inv(x), Zero)
+	ensures lt(x, Zero) ==> lt(inv(x), Zero)
+{
+	// Contraposition
+	if gt(x, Zero) {
+		assert inv(x) != Zero by {InvIsNeverZero(x);}
+		if lt(inv(x), Zero) {
+			assert lt(mult(x, inv(x)), Zero) by {MultSignStrict(x, inv(x));}
+			assert lt(One, Zero);
+			assert gt(One, Zero)             by {OneIsPositive();}
+			assert false;
+		}
+		assert gt(inv(x), Zero) by {ComparisonTrichotomy(inv(x), Zero);}
+	}
+	if lt(x, Zero) {
+		assert inv(x) != Zero by {InvIsNeverZero(x);}
+		if gt(inv(x), Zero) {
+			assert lt(mult(x, inv(x)), Zero) by {MultSignStrict(x, inv(x));}
+			assert lt(One, Zero);
+			assert gt(One, Zero)             by {OneIsPositive();}
+			assert false;
+		}
+		assert lt(inv(x), Zero) by {ComparisonTrichotomy(inv(x), Zero);}
+	}
+}
+
+lemma IneqDivOnBothSides(x: RR, y: RR, a: RR)
+	requires a != Zero
+	ensures lt(x, y) && gt(a, Zero) ==> lt(div(x, a), div(y, a))
+	ensures gt(x, y) && gt(a, Zero) ==> gt(div(x, a), div(y, a))
+	ensures le(x, y) && gt(a, Zero) ==> le(div(x, a), div(y, a))
+	ensures ge(x, y) && gt(a, Zero) ==> ge(div(x, a), div(y, a))
+
+	ensures lt(x, y) && lt(a, Zero) ==> gt(div(x, a), div(y, a))
+	ensures gt(x, y) && lt(a, Zero) ==> lt(div(x, a), div(y, a))
+	ensures le(x, y) && lt(a, Zero) ==> ge(div(x, a), div(y, a))
+	ensures ge(x, y) && lt(a, Zero) ==> le(div(x, a), div(y, a))
+{
+	InvHasSameSign(a);
+	assert inv(a) != Zero   by {InvIsNeverZero(a);}
+	IneqMultOnBothSides(x, y, inv(a));
 }
 
 function square(x: RR): RR {mult(x, x)}
@@ -693,7 +817,7 @@ lemma SquaresNonnegative(x: RR)
 	else if le(x, Zero) {
 		assert gt(neg(x), Zero)                   by {LessThanZero(x);}
 		assert gt(mult(neg(x), neg(x)), Zero)     by {ComparisonClosure(neg(x), neg(x));}
-		assert mult(neg(x), neg(x)) == mult(x, x) by {ProdOfNeg(x, x);}
+		assert mult(neg(x), neg(x)) == mult(x, x) by {MultOfNeg(x, x);}
 	}
 }
 
@@ -780,8 +904,8 @@ lemma SquareOfSub(x: RR, y: RR)
 	ensures square(sub(x, y)) == sub(add(square(x), square(y)), mult(Two, mult(x, y)))
 {
 	assert square(add(x, neg(y))) == add(add(square(x), square(neg(y))), mult(Two, mult(x, neg(y)))) by {SquareOfSum(x, neg(y));}
-	assert mult(Two, mult(x, neg(y))) == mult(Two, neg(mult(x, y))) == neg(mult(Two, mult(x, y)))    by {NegOfProd(x, y); NegOfProd(Two, mult(x, y));}
-	assert square(neg(y)) == square(y)                                                               by {ProdOfNeg(y, y);}
+	assert mult(Two, mult(x, neg(y))) == mult(Two, neg(mult(x, y))) == neg(mult(Two, mult(x, y)))    by {NegOfMult(x, y); NegOfMult(Two, mult(x, y));}
+	assert square(neg(y)) == square(y)                                                               by {MultOfNeg(y, y);}
 }
 
 lemma SumOfSquaresInequality(x: RR, y: RR)
@@ -1048,7 +1172,6 @@ ghost predicate LowerBounded(s: iset<RR>) {
 ghost predicate IsTheSupremum(s: iset<RR>, M: RR) {
 	IsAnUpperBound(s, M) && forall N: RR :: IsAnUpperBound(s, N) ==> ge(N, M)
 }
-
 ghost predicate IsTheInfimum(s: iset<RR>, M: RR) {
 	IsALowerBound(s, M) && forall N: RR :: IsALowerBound(s, N) ==> le(N, M)
 }
@@ -1087,11 +1210,47 @@ lemma SqrtExists(x: RR)
 	assert IsAnUpperBound(numbersLessThan, div(add(x, One), Two)) by {
 		forall y: RR ensures y in numbersLessThan ==> le(y, div(add(x, One), Two)) {
 			if y in numbersLessThan {
-				assume le(y, div(add(x, One), Two));
+				assert ge(add(square(y), square(One)), mult(Two, mult(y, One)))  by {SumOfSquaresInequality(y, One);}
+				assert ge(add(square(y), One), mult(y, Two))                     by {Neutrals(One); Neutrals(y); Conmutativity(Two, y);}
+				assert le(mult(y, Two), add(square(y), One));
+				assert le(div(mult(y, Two), Two), div(add(square(y), One), Two)) by {IneqDivOnBothSides(mult(y, Two), add(square(y), One), Two);}
+
+				assert div(mult(y, Two), Two) == y                               by {Associativity(y, Two, inv(Two)); Neutrals(y);}
+				assert le(y, div(add(square(y), One), Two));
+
+				assert le(square(y), x);
+				assert le(add(square(y), One), add(x, One))                      by {IneqAddOnBothSides(square(y), x, One);}
+				assert le(div(add(square(y), One), Two), div(add(x, One), Two))  by {IneqDivOnBothSides(add(square(y), One), add(x, One), Two);}
+
+				assert le(y, div(add(x, One), Two))                              by {IneqTransitivity(y, div(add(square(y), One), Two), div(add(x, One), Two));}
 			}
 		}
 	}
 
 	var supremum := sup(numbersLessThan);
-	assume ge(supremum, Zero) && square(supremum) == x;
+	assert ge(supremum, Zero) by {assert Zero in numbersLessThan;}
+
+	if lt(square(supremum), x) {
+		var difference := sub(x, square(supremum));
+		forall epsilon: RR ensures gt(epsilon, Zero) && lt(epsilon, difference)
+			==> lt(square(add(supremum, square(epsilon))), add(x, add(neg(epsilon), add(mult(Two, square(epsilon)), square(square(epsilon))))))
+		{
+			if gt(epsilon, Zero) && lt(epsilon, difference) {
+				assert lt(epsilon, difference);
+				assert lt(add(epsilon, square(supremum)), add(difference, square(supremum))) by {IneqAddOnBothSides(epsilon, difference, square(supremum));}
+				assert add(difference, square(supremum)) == x by {Associativity(x, neg(square(supremum)), square(supremum)); Neutrals(x);}
+				assert lt(add(epsilon, square(supremum)), x);
+
+				var f := add(neg(epsilon), add(mult(Two, square(epsilon)), square(square(epsilon))));
+				assert lt(add(add(epsilon, square(supremum)), f), add(x, f)) by {IneqAddOnBothSides(add(epsilon, square(supremum)), x, f);}
+
+				assume add(add(epsilon, square(supremum)), f) == square(add(supremum, square(epsilon)));
+			}
+		}
+		assume false;
+	}
+	if gt(square(supremum), x) {
+		assume false;
+	}
+	assert square(supremum) == x by {ComparisonTrichotomy(square(supremum), x);}
 }
